@@ -1,0 +1,932 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Hybrid Encryption Decryption Tool</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=DM+Mono:ital,wght@0,300;0,400;0,500;1,400&family=Syne:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<style>
+:root {
+  --bg: #060810;
+  --surface-0: #0a0e1a;
+  --surface-1: #0f1525;
+  --surface-2: #141c2e;
+  --surface-3: #192238;
+  --border-subtle: rgba(255,255,255,0.05);
+  --border-mid: rgba(255,255,255,0.09);
+  --border-accent: rgba(96,165,250,0.3);
+  --text-primary: #f0f4ff;
+  --text-secondary: #7f8fad;
+  --text-muted: #3d4f6b;
+  --accent: #60a5fa;
+  --accent-dim: rgba(96,165,250,0.12);
+  --accent-glow: rgba(96,165,250,0.06);
+  --success: #34d399;
+  --success-dim: rgba(52,211,153,0.1);
+  --error: #f87171;
+  --error-dim: rgba(248,113,113,0.1);
+  --mono: 'DM Mono', monospace;
+  --sans: 'Syne', sans-serif;
+  --radius-sm: 8px;
+  --radius-md: 14px;
+  --radius-lg: 20px;
+  --radius-xl: 28px;
+}
+
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+html { scroll-behavior: smooth; }
+
+body {
+  font-family: var(--sans);
+  background-color: var(--bg);
+  color: var(--text-primary);
+  min-height: 100vh;
+  line-height: 1.6;
+  overflow-x: hidden;
+}
+
+/* Atmospheric background */
+body::before {
+  content: '';
+  position: fixed;
+  inset: 0;
+  background:
+    radial-gradient(ellipse 80% 50% at 85% -10%, rgba(96,130,250,0.1) 0%, transparent 60%),
+    radial-gradient(ellipse 50% 40% at -5% 30%, rgba(59,130,246,0.07) 0%, transparent 50%),
+    radial-gradient(ellipse 60% 60% at 50% 110%, rgba(52,211,153,0.04) 0%, transparent 50%);
+  pointer-events: none;
+  z-index: 0;
+}
+
+/* Noise texture overlay */
+body::after {
+  content: '';
+  position: fixed;
+  inset: 0;
+  background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noise)' opacity='0.03'/%3E%3C/svg%3E");
+  pointer-events: none;
+  z-index: 0;
+  opacity: 0.4;
+}
+
+.wrap {
+  position: relative;
+  z-index: 1;
+  max-width: 1300px;
+  margin: 0 auto;
+  padding: 40px 24px 60px;
+}
+
+/* ── Header ── */
+.header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 24px;
+  margin-bottom: 40px;
+  flex-wrap: wrap;
+}
+
+.header-left {
+  display: flex;
+  align-items: flex-start;
+  gap: 20px;
+}
+
+.logo-mark {
+  width: 48px;
+  height: 48px;
+  border-radius: var(--radius-md);
+  background: linear-gradient(135deg, rgba(96,165,250,0.2), rgba(96,165,250,0.05));
+  border: 1px solid rgba(96,165,250,0.25);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  position: relative;
+  overflow: hidden;
+}
+
+.logo-mark::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: radial-gradient(circle at 30% 30%, rgba(96,165,250,0.15), transparent 70%);
+}
+
+.logo-mark svg {
+  width: 22px;
+  height: 22px;
+  color: var(--accent);
+  position: relative;
+  z-index: 1;
+}
+
+.header-text h1 {
+  font-size: 1.5rem;
+  font-weight: 700;
+  letter-spacing: -0.02em;
+  color: var(--text-primary);
+  line-height: 1.2;
+}
+
+.header-text .sub {
+  font-family: var(--mono);
+  font-size: 0.72rem;
+  color: var(--text-muted);
+  margin-top: 5px;
+  letter-spacing: 0.03em;
+  line-height: 1.7;
+}
+
+.sub span {
+  color: var(--text-secondary);
+}
+
+.status-badge {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 9px 16px;
+  border-radius: 999px;
+  background: var(--surface-2);
+  border: 1px solid var(--border-mid);
+  font-family: var(--mono);
+  font-size: 0.75rem;
+  font-weight: 500;
+  color: var(--text-secondary);
+  transition: all 0.3s ease;
+  white-space: nowrap;
+  letter-spacing: 0.04em;
+}
+
+.status-badge::before {
+  content: '';
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: var(--text-muted);
+  transition: all 0.3s ease;
+  flex-shrink: 0;
+}
+
+.status-badge.success { color: var(--success); border-color: rgba(52,211,153,0.25); background: var(--success-dim); }
+.status-badge.success::before { background: var(--success); box-shadow: 0 0 6px var(--success); }
+.status-badge.error { color: var(--error); border-color: rgba(248,113,113,0.25); background: var(--error-dim); }
+.status-badge.error::before { background: var(--error); }
+.status-badge.processing { color: var(--accent); border-color: var(--border-accent); background: var(--accent-dim); }
+.status-badge.processing::before { background: var(--accent); box-shadow: 0 0 6px var(--accent); animation: pulse 1.2s ease-in-out infinite; }
+
+@keyframes pulse { 0%,100% { opacity: 1; } 50% { opacity: 0.3; } }
+
+/* ── Divider / Section labels ── */
+.section-label {
+  font-family: var(--mono);
+  font-size: 0.65rem;
+  font-weight: 500;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--text-muted);
+  margin-bottom: 14px;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.section-label::after {
+  content: '';
+  flex: 1;
+  height: 1px;
+  background: var(--border-subtle);
+}
+
+/* ── Input Grid ── */
+.input-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  grid-template-rows: auto auto;
+  gap: 14px;
+  margin-bottom: 14px;
+}
+
+.field {
+  background: var(--surface-1);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-lg);
+  padding: 18px 20px;
+  transition: border-color 0.2s ease, background 0.2s ease;
+  position: relative;
+}
+
+.field:focus-within {
+  border-color: rgba(96,165,250,0.2);
+  background: var(--surface-2);
+}
+
+.field.full-width { grid-column: 1 / -1; }
+
+.field-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 12px;
+}
+
+.label {
+  font-family: var(--mono);
+  font-size: 0.7rem;
+  font-weight: 500;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--text-secondary);
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.label-tag {
+  font-size: 0.6rem;
+  padding: 2px 7px;
+  border-radius: 4px;
+  background: var(--accent-dim);
+  color: var(--accent);
+  border: 1px solid rgba(96,165,250,0.15);
+  letter-spacing: 0.06em;
+}
+
+.field-hint {
+  font-family: var(--mono);
+  font-size: 0.63rem;
+  color: var(--text-muted);
+  letter-spacing: 0.03em;
+}
+
+textarea {
+  width: 100%;
+  background: transparent;
+  border: none;
+  color: var(--text-primary);
+  font-family: var(--mono);
+  font-size: 0.78rem;
+  line-height: 1.7;
+  resize: vertical;
+  outline: none;
+  min-height: 130px;
+  letter-spacing: 0.01em;
+}
+
+textarea::placeholder {
+  color: var(--text-muted);
+  font-style: italic;
+}
+
+#privateKey {
+  min-height: 100px;
+}
+
+textarea::-webkit-scrollbar { width: 4px; }
+textarea::-webkit-scrollbar-track { background: transparent; }
+textarea::-webkit-scrollbar-thumb { background: var(--surface-3); border-radius: 4px; }
+
+/* ── Separator line between fields ── */
+.field-sep {
+  width: 100%;
+  height: 1px;
+  background: var(--border-subtle);
+  margin: 10px 0 14px;
+}
+
+/* ── Actions bar ── */
+.actions {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+  margin-bottom: 14px;
+}
+
+.actions-left {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+  flex: 1;
+}
+
+.actions-right {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+button {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  border: none;
+  cursor: pointer;
+  padding: 10px 18px;
+  border-radius: var(--radius-sm);
+  font-family: var(--sans);
+  font-weight: 600;
+  font-size: 0.82rem;
+  letter-spacing: 0.01em;
+  transition: all 0.18s ease;
+  white-space: nowrap;
+  position: relative;
+  overflow: hidden;
+}
+
+button svg { width: 14px; height: 14px; flex-shrink: 0; }
+
+button::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: rgba(255,255,255,0);
+  transition: background 0.15s ease;
+}
+
+button:hover::after { background: rgba(255,255,255,0.04); }
+button:active { transform: scale(0.98); }
+
+.btn-primary {
+  background: linear-gradient(135deg, #3b82f6, #2563eb);
+  color: #fff;
+  box-shadow: 0 1px 0 rgba(255,255,255,0.1) inset, 0 4px 16px rgba(59,130,246,0.25);
+  padding: 11px 22px;
+}
+
+.btn-primary:hover {
+  box-shadow: 0 1px 0 rgba(255,255,255,0.1) inset, 0 6px 22px rgba(59,130,246,0.35);
+  transform: translateY(-1px);
+}
+
+.btn-ghost {
+  background: var(--surface-2);
+  color: var(--text-secondary);
+  border: 1px solid var(--border-mid);
+}
+
+.btn-ghost:hover { color: var(--text-primary); border-color: rgba(255,255,255,0.14); }
+
+.btn-icon {
+  background: var(--surface-2);
+  color: var(--text-secondary);
+  border: 1px solid var(--border-mid);
+  padding: 10px 14px;
+}
+
+.btn-icon:hover { color: var(--text-primary); border-color: rgba(255,255,255,0.14); }
+
+/* Toggle */
+.toggle-wrap {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 14px;
+  background: var(--surface-2);
+  border-radius: var(--radius-sm);
+  border: 1px solid var(--border-mid);
+  cursor: pointer;
+  user-select: none;
+  font-size: 0.82rem;
+  color: var(--text-secondary);
+  font-weight: 600;
+  transition: all 0.18s;
+}
+
+.toggle-wrap:hover { color: var(--text-primary); border-color: rgba(255,255,255,0.14); }
+
+.toggle-wrap input[type="checkbox"] { display: none; }
+
+.toggle-pill {
+  width: 30px;
+  height: 17px;
+  border-radius: 999px;
+  background: var(--surface-3);
+  border: 1px solid var(--border-mid);
+  position: relative;
+  transition: all 0.2s ease;
+  flex-shrink: 0;
+}
+
+.toggle-pill::after {
+  content: '';
+  position: absolute;
+  top: 2px;
+  left: 2px;
+  width: 11px;
+  height: 11px;
+  border-radius: 50%;
+  background: var(--text-muted);
+  transition: all 0.2s ease;
+}
+
+.toggle-wrap:has(input:checked) .toggle-pill {
+  background: rgba(96,165,250,0.25);
+  border-color: rgba(96,165,250,0.4);
+}
+
+.toggle-wrap:has(input:checked) .toggle-pill::after {
+  left: 15px;
+  background: var(--accent);
+}
+
+/* ── Output ── */
+.output-field {
+  background: var(--surface-1);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-lg);
+  padding: 18px 20px;
+  margin-bottom: 14px;
+  position: relative;
+}
+
+.output-field:has(#output:not(:placeholder-shown)) {
+  border-color: rgba(52,211,153,0.12);
+}
+
+#output {
+  min-height: 200px;
+  color: var(--success);
+  font-size: 0.78rem;
+}
+
+#output:placeholder-shown { color: var(--text-muted); }
+
+.output-meta {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 12px;
+}
+
+.char-count {
+  font-family: var(--mono);
+  font-size: 0.63rem;
+  color: var(--text-muted);
+  letter-spacing: 0.04em;
+}
+
+/* ── Debug Panel ── */
+details {
+  background: var(--surface-1);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-lg);
+  overflow: hidden;
+  transition: all 0.2s ease;
+}
+
+details[open] { border-color: var(--border-mid); }
+
+summary {
+  cursor: pointer;
+  padding: 16px 20px;
+  font-family: var(--mono);
+  font-size: 0.72rem;
+  font-weight: 500;
+  letter-spacing: 0.06em;
+  color: var(--text-secondary);
+  list-style: none;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  user-select: none;
+  text-transform: uppercase;
+  transition: color 0.15s;
+}
+
+summary::-webkit-details-marker { display: none; }
+
+summary::before {
+  content: '';
+  width: 14px;
+  height: 14px;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%233d4f6b' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpolyline points='9 18 15 12 9 6'%3E%3C/polyline%3E%3C/svg%3E");
+  background-size: contain;
+  background-repeat: no-repeat;
+  background-position: center;
+  transition: transform 0.2s ease;
+  flex-shrink: 0;
+}
+
+details[open] summary::before { transform: rotate(90deg); }
+summary:hover { color: var(--text-primary); }
+
+.debug-content {
+  padding: 0 20px 18px;
+}
+
+pre#debug {
+  font-family: var(--mono);
+  font-size: 0.72rem;
+  color: var(--text-secondary);
+  line-height: 1.8;
+  white-space: pre-wrap;
+  word-break: break-all;
+  padding: 16px;
+  background: var(--surface-0);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-md);
+}
+
+/* ── Toast ── */
+.toast {
+  position: fixed;
+  right: 24px;
+  bottom: 24px;
+  background: var(--surface-2);
+  border: 1px solid var(--border-mid);
+  padding: 13px 20px;
+  border-radius: var(--radius-md);
+  z-index: 9999;
+  font-family: var(--mono);
+  font-size: 0.78rem;
+  color: var(--text-primary);
+  box-shadow: 0 8px 32px rgba(0,0,0,0.4), 0 1px 0 rgba(255,255,255,0.04) inset;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  animation: slideIn 0.25s cubic-bezier(0.34,1.56,0.64,1);
+  letter-spacing: 0.02em;
+}
+
+.toast-dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: var(--accent);
+  flex-shrink: 0;
+}
+
+@keyframes slideIn {
+  from { transform: translateY(12px); opacity: 0; }
+  to { transform: translateY(0); opacity: 1; }
+}
+
+/* ── Keyboard hint ── */
+.keyboard-hint {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-family: var(--mono);
+  font-size: 0.63rem;
+  color: var(--text-muted);
+  letter-spacing: 0.04em;
+}
+
+.kbd {
+  display: inline-flex;
+  align-items: center;
+  padding: 2px 7px;
+  background: var(--surface-2);
+  border: 1px solid var(--border-mid);
+  border-radius: 5px;
+  font-size: 0.62rem;
+  color: var(--text-secondary);
+}
+
+/* ── Footer ── */
+.footer {
+  margin-top: 32px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 12px;
+}
+
+.footer-note {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-family: var(--mono);
+  font-size: 0.63rem;
+  color: var(--text-muted);
+  letter-spacing: 0.04em;
+}
+
+.footer-note svg {
+  width: 12px;
+  height: 12px;
+  color: var(--text-muted);
+}
+
+/* ── Responsive ── */
+@media (max-width: 768px) {
+  .wrap { padding: 24px 16px 48px; }
+  .input-grid { grid-template-columns: 1fr; }
+  .field.full-width { grid-column: 1; }
+  .header-text h1 { font-size: 1.2rem; }
+  .actions { gap: 8px; }
+  .actions-right { width: 100%; }
+  .footer { flex-direction: column; align-items: flex-start; }
+}
+
+@media (max-width: 480px) {
+  .btn-primary { width: 100%; justify-content: center; }
+  .actions-left, .actions-right { width: 100%; }
+}
+</style>
+</head>
+<body>
+
+<div class="wrap">
+
+  <!-- Header -->
+  <div class="header">
+    <div class="header-left">
+      <div class="logo-mark">
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round">
+          <rect x="3" y="11" width="18" height="11" rx="2" ry="2"/>
+          <path d="M7 11V7a5 5 0 0 1 10 0v4"/>
+        </svg>
+      </div>
+      <div class="header-text">
+        <h1>Hybrid Decryption</h1>
+        <div class="sub">
+          <span>RSA-OAEP</span> · <span>PBKDF2</span> · <span>AES-256-CBC</span><br>
+          All processing local · browser-only
+        </div>
+      </div>
+    </div>
+    <div class="status-badge" id="status">Ready</div>
+  </div>
+
+  <!-- Input Section -->
+  <div class="section-label">Input Parameters</div>
+
+  <div class="input-grid">
+
+    <div class="field">
+      <div class="field-header">
+        <span class="label">
+          Part 1
+          <span class="label-tag">cipher</span>
+        </span>
+        <span class="field-hint">salt · iv · payload</span>
+      </div>
+      <textarea id="part1" placeholder="Paste part1 value here…"></textarea>
+    </div>
+
+    <div class="field">
+      <div class="field-header">
+        <span class="label">
+          Part 2
+          <span class="label-tag">rsa</span>
+        </span>
+        <span class="field-hint">encrypted secret key</span>
+      </div>
+      <textarea id="part2" placeholder="Paste part2 value here…"></textarea>
+    </div>
+
+    <div class="field full-width">
+      <div class="field-header">
+        <span class="label">
+          RSA Private Key
+          <span class="label-tag">pkcs8</span>
+        </span>
+        <span class="field-hint">drag &amp; drop .pem · paste inline</span>
+      </div>
+      <textarea id="privateKey" placeholder="-----BEGIN PRIVATE KEY-----&#10;…&#10;-----END PRIVATE KEY-----"></textarea>
+    </div>
+
+  </div>
+
+  <!-- Actions -->
+  <div class="actions">
+    <div class="actions-left">
+      <button class="btn-primary" id="decryptBtn">
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 2l-2 2m-7.61 7.61a5.5 5.5 0 1 1-7.778 7.778 5.5 5.5 0 0 1 7.777-7.777zm0 0L15.5 7.5m0 0l3 3L22 7l-3-3m-3.5 3.5L19 4"/></svg>
+        Decrypt
+      </button>
+      <button class="btn-ghost" id="clearBtn">
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/><path d="M10 11v6"/><path d="M14 11v6"/></svg>
+        Clear
+      </button>
+      <button class="btn-ghost" id="sampleBtn">
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
+        Sample
+      </button>
+      <label class="toggle-wrap">
+        <input type="checkbox" id="beautify" checked>
+        <span class="toggle-pill"></span>
+        Beautify JSON
+      </label>
+    </div>
+    <div class="actions-right">
+      <button class="btn-icon" id="copyBtn" title="Copy output (Ctrl+Shift+C)">
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>
+      </button>
+      <button class="btn-icon" id="downloadBtn" title="Download output">
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+      </button>
+    </div>
+  </div>
+
+  <!-- Output -->
+  <div class="section-label">Decrypted Output</div>
+
+  <div class="output-field">
+    <div class="output-meta">
+      <span class="label">Result</span>
+      <span class="char-count" id="charCount">—</span>
+    </div>
+    <textarea id="output" readonly placeholder="Awaiting decryption…"></textarea>
+  </div>
+
+  <!-- Debug -->
+  <details>
+    <summary>Debug Panel</summary>
+    <div class="debug-content">
+      <pre id="debug"></pre>
+    </div>
+  </details>
+
+  <!-- Footer -->
+  <div class="footer">
+    <div class="footer-note">
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
+      Zero data transmission · client-side Web Crypto API
+    </div>
+    <div class="keyboard-hint">
+      <span class="kbd">Ctrl</span><span>+</span><span class="kbd">↵</span>
+      <span style="margin-left:4px">to decrypt</span>
+    </div>
+  </div>
+
+</div>
+
+<script>
+const cfg = { iter: 120000 };
+const $ = id => document.getElementById(id);
+
+function toast(t) {
+  let d = document.createElement('div');
+  d.className = 'toast';
+  d.innerHTML = '<span class="toast-dot"></span>' + t;
+  document.body.appendChild(d);
+  setTimeout(() => d.remove(), 3000);
+}
+
+function setStatus(state, label) {
+  const el = $('status');
+  el.textContent = label;
+  el.className = 'status-badge ' + (state || '');
+}
+
+function pemToBuf(pem) {
+  const b64 = pem.replace(/-----[^-]+-----/g, '').replace(/\s+/g, '');
+  return Uint8Array.from(atob(b64), c => c.charCodeAt(0)).buffer;
+}
+
+function hexToBytes(h) {
+  if (!/^[0-9a-fA-F]+$/.test(h)) throw Error('Invalid hex');
+  let a = [];
+  for (let i = 0; i < h.length; i += 2) a.push(parseInt(h.substr(i, 2), 16));
+  return new Uint8Array(a);
+}
+
+function bytesToHex(b) {
+  return [...b].map(x => x.toString(16).padStart(2, '0')).join('');
+}
+
+function b64ToBytes(b64) {
+  return Uint8Array.from(atob(b64), c => c.charCodeAt(0));
+}
+
+function updateCharCount() {
+  const val = $('output').value;
+  $('charCount').textContent = val ? val.length.toLocaleString() + ' chars' : '—';
+}
+
+async function decrypt() {
+  const start = performance.now();
+  let dbg = [];
+  try {
+    if (!window.crypto?.subtle) throw Error('Unsupported Web Crypto API');
+    setStatus('processing', 'Processing');
+    let part1 = $('part1').value.trim();
+    let part2 = $('part2').value.trim();
+    let pem = $('privateKey').value.trim();
+    if (!part1 || !part2 || !pem) throw Error('All fields are required');
+    if (part1.length < 64) throw Error('Invalid part1 structure');
+    const saltHex = part1.substring(0, 32);
+    const ivHex = part1.substring(32, 64);
+    const cipherB64 = part1.substring(64);
+    const salt = hexToBytes(saltHex);
+    const iv = hexToBytes(ivHex);
+    dbg.push("Salt: " + saltHex, "\nIV: " + ivHex, "\nCipher Text: " + cipherB64);
+    const privateKey = await crypto.subtle.importKey("pkcs8", pemToBuf(pem), { name: "RSA-OAEP", hash: "SHA-256" }, false, ["decrypt"]);
+    const secretBytes = await crypto.subtle.decrypt({ name: "RSA-OAEP" }, privateKey, b64ToBytes(part2));
+    const secret = new TextDecoder().decode(secretBytes);
+    dbg.push("\nRSA Decrypted Secret Key: " + secret);
+    const keyMat = await crypto.subtle.importKey("raw", new TextEncoder().encode(secret), "PBKDF2", false, ["deriveBits"]);
+    const bits = await crypto.subtle.deriveBits({ name: "PBKDF2", salt: salt, iterations: cfg.iter, hash: "SHA-256" }, keyMat, 256);
+    dbg.push("\nPBKDF2 Derived Key: " + bytesToHex(new Uint8Array(bits)));
+    const aesKey = await crypto.subtle.importKey("raw", bits, { name: "AES-CBC" }, false, ["decrypt"]);
+    const plainBuf = await crypto.subtle.decrypt({ name: "AES-CBC", iv: iv }, aesKey, b64ToBytes(cipherB64));
+    let txt = new TextDecoder().decode(plainBuf);
+    if ($('beautify').checked) { try { txt = JSON.stringify(JSON.parse(txt), null, 2); } catch (e) {} }
+    $('output').value = txt;
+    updateCharCount();
+    dbg.push("\nDecryption Status: Success");
+    dbg.push("\nExecution Time: " + (performance.now() - start).toFixed(2) + " ms");
+    $('debug').textContent = dbg.join('');
+    setStatus('success', 'Success');
+    toast('Decryption completed');
+  } catch (e) {
+    setStatus('error', 'Failed');
+    $('debug').textContent += '\nError Logs: ' + e.message;
+    toast(e.message.includes('decrypt') ? 'Failed to decrypt payload' : e.message);
+  }
+}
+
+$('decryptBtn').onclick = decrypt;
+
+$('clearBtn').onclick = () => {
+  document.querySelectorAll('textarea').forEach(t => { t.value = ''; t.style.height = ''; });
+  setStatus('', 'Ready');
+  updateCharCount();
+};
+
+$('copyBtn').onclick = async () => {
+  await navigator.clipboard.writeText($('output').value);
+  toast('Output copied to clipboard');
+};
+
+$('downloadBtn').onclick = () => {
+  let a = document.createElement('a');
+  a.href = URL.createObjectURL(new Blob([$('output').value], { type: 'text/plain' }));
+  a.download = 'decrypted-output.txt';
+  a.click();
+  toast('File downloaded');
+};
+
+$('sampleBtn').onclick = async () => {
+  // Generate a real sample that can be fully round-tripped in the browser
+  try {
+    // 1. Generate a fresh RSA key pair
+    const keyPair = await crypto.subtle.generateKey(
+      { name: 'RSA-OAEP', modulusLength: 2048, publicExponent: new Uint8Array([1,0,1]), hash: 'SHA-256' },
+      true, ['encrypt', 'decrypt']
+    );
+    // 2. Random 32-char secret key
+    const secret = Array.from(crypto.getRandomValues(new Uint8Array(24)), b => b.toString(36)).join('').slice(0,32);
+    // 3. Encrypt secret with RSA public key → part2
+    const encSecret = await crypto.subtle.encrypt({ name: 'RSA-OAEP' }, keyPair.publicKey, new TextEncoder().encode(secret));
+    const part2Val = btoa(String.fromCharCode(...new Uint8Array(encSecret)));
+    // 4. PBKDF2 derive AES key
+    const salt = crypto.getRandomValues(new Uint8Array(16));
+    const iv   = crypto.getRandomValues(new Uint8Array(16));
+    const keyMat = await crypto.subtle.importKey('raw', new TextEncoder().encode(secret), 'PBKDF2', false, ['deriveBits']);
+    const bits   = await crypto.subtle.deriveBits({ name:'PBKDF2', salt, iterations:cfg.iter, hash:'SHA-256' }, keyMat, 256);
+    const aesKey = await crypto.subtle.importKey('raw', bits, { name:'AES-CBC' }, false, ['encrypt']);
+    // 5. Encrypt a sample payload
+    const plain = JSON.stringify({ message: 'Hello from Hybrid Encryption!', timestamp: new Date().toISOString() });
+    const cipher = await crypto.subtle.encrypt({ name:'AES-CBC', iv }, aesKey, new TextEncoder().encode(plain));
+    const toHex  = b => [...b].map(x=>x.toString(16).padStart(2,'0')).join('');
+    const part1Val = toHex(salt) + toHex(iv) + btoa(String.fromCharCode(...new Uint8Array(cipher)));
+    // 6. Export private key as PEM
+    const pkcs8 = await crypto.subtle.exportKey('pkcs8', keyPair.privateKey);
+    const b64pk = btoa(String.fromCharCode(...new Uint8Array(pkcs8))).match(/.{1,64}/g).join('\n');
+    const pemVal = '-----BEGIN PRIVATE KEY-----\n' + b64pk + '\n-----END PRIVATE KEY-----';
+    // 7. Fill fields and resize
+    $('part1').value = part1Val;
+    $('part2').value = part2Val;
+    $('privateKey').value = pemVal;
+    ['part1','part2','privateKey'].forEach(id => {
+      const el = $(id); el.style.height = 'auto'; el.style.height = el.scrollHeight + 'px';
+    });
+    toast('Sample data loaded — click Decrypt to test');
+  } catch(e) { toast('Sample generation failed: ' + e.message); }
+};
+
+document.addEventListener('keydown', e => {
+  if (e.ctrlKey && e.key === 'Enter') decrypt();
+  if (e.ctrlKey && e.shiftKey && e.key.toLowerCase() === 'c') $('copyBtn').click();
+});
+
+['part1', 'part2', 'privateKey'].forEach(id => {
+  let el = $(id);
+  el.addEventListener('input', () => {
+    el.style.height = 'auto';
+    el.style.height = el.scrollHeight + 'px';
+  });
+});
+
+$('output').addEventListener('input', updateCharCount);
+
+$('privateKey').addEventListener('dragover', e => e.preventDefault());
+$('privateKey').addEventListener('drop', e => {
+  e.preventDefault();
+  let f = e.dataTransfer.files[0];
+  if (f) f.text().then(t => $('privateKey').value = t);
+});
+</script>
+</body>
+</html>
