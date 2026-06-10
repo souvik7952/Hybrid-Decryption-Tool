@@ -6,6 +6,13 @@
 <title>Hybrid Encryption Decryption Tool</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=DM+Mono:ital,wght@0,300;0,400;0,500;1,400&family=Syne:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<script>
+  // Apply theme before first paint to avoid flash
+  (function() {
+    var t = localStorage.getItem('hdt-theme');
+    if (t === 'light') document.documentElement.setAttribute('data-theme', 'light');
+  })();
+</script>
 <style>
 :root {
   --bg: #060810;
@@ -32,6 +39,28 @@
   --radius-md: 14px;
   --radius-lg: 20px;
   --radius-xl: 28px;
+  --theme-transition: background-color 0.25s ease, border-color 0.25s ease, color 0.25s ease, box-shadow 0.25s ease;
+}
+
+[data-theme="light"] {
+  --bg: #f0f4fb;
+  --surface-0: #e4eaf5;
+  --surface-1: #edf1fa;
+  --surface-2: #e0e7f4;
+  --surface-3: #d4dcee;
+  --border-subtle: rgba(0,0,0,0.07);
+  --border-mid: rgba(0,0,0,0.11);
+  --border-accent: rgba(37,99,235,0.3);
+  --text-primary: #0f172a;
+  --text-secondary: #475569;
+  --text-muted: #94a3b8;
+  --accent: #2563eb;
+  --accent-dim: rgba(37,99,235,0.1);
+  --accent-glow: rgba(37,99,235,0.05);
+  --success: #059669;
+  --success-dim: rgba(5,150,105,0.1);
+  --error: #dc2626;
+  --error-dim: rgba(220,38,38,0.08);
 }
 
 *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
@@ -45,6 +74,7 @@ body {
   min-height: 100vh;
   line-height: 1.6;
   overflow-x: hidden;
+  transition: var(--theme-transition);
 }
 
 /* Atmospheric background */
@@ -58,6 +88,14 @@ body::before {
     radial-gradient(ellipse 60% 60% at 50% 110%, rgba(52,211,153,0.04) 0%, transparent 50%);
   pointer-events: none;
   z-index: 0;
+  transition: opacity 0.25s ease;
+}
+
+[data-theme="light"] body::before {
+  background:
+    radial-gradient(ellipse 80% 50% at 85% -10%, rgba(37,99,235,0.07) 0%, transparent 60%),
+    radial-gradient(ellipse 50% 40% at -5% 30%, rgba(37,99,235,0.05) 0%, transparent 50%),
+    radial-gradient(ellipse 60% 60% at 50% 110%, rgba(5,150,105,0.03) 0%, transparent 50%);
 }
 
 /* Noise texture overlay */
@@ -93,6 +131,13 @@ body::after {
   display: flex;
   align-items: flex-start;
   gap: 20px;
+}
+
+.header-right {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-shrink: 0;
 }
 
 .logo-mark {
@@ -631,6 +676,58 @@ pre#debug {
   .btn-primary { width: 100%; justify-content: center; }
   .actions-left, .actions-right { width: 100%; }
 }
+
+/* ── Theme Toggle ── */
+.theme-toggle {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 38px;
+  height: 38px;
+  border-radius: var(--radius-sm);
+  background: var(--surface-2);
+  border: 1px solid var(--border-mid);
+  color: var(--text-secondary);
+  cursor: pointer;
+  transition: var(--theme-transition);
+  flex-shrink: 0;
+  padding: 0;
+}
+
+.theme-toggle:hover {
+  color: var(--text-primary);
+  border-color: var(--border-accent);
+  background: var(--accent-dim);
+}
+
+.theme-toggle svg {
+  width: 16px;
+  height: 16px;
+  transition: transform 0.35s ease, opacity 0.2s ease;
+}
+
+.theme-toggle .icon-sun { display: none; }
+.theme-toggle .icon-moon { display: block; }
+
+[data-theme="light"] .theme-toggle .icon-sun { display: block; }
+[data-theme="light"] .theme-toggle .icon-moon { display: none; }
+
+/* Ensure all surfaces transition smoothly */
+.field, .output-field, details, .status-badge,
+.btn-ghost, .btn-icon, .toggle-wrap, .kbd,
+pre#debug, .toast {
+  transition: var(--theme-transition);
+}
+
+/* Light mode: soften the noise overlay */
+[data-theme="light"] body::after {
+  opacity: 0.15;
+}
+
+/* Light mode toast shadow */
+[data-theme="light"] .toast {
+  box-shadow: 0 8px 32px rgba(0,0,0,0.12), 0 1px 0 rgba(255,255,255,0.6) inset;
+}
 </style>
 </head>
 <body>
@@ -654,7 +751,15 @@ pre#debug {
         </div>
       </div>
     </div>
-    <div class="status-badge" id="status">Ready</div>
+    <div class="header-right">
+      <div class="status-badge" id="status">Ready</div>
+      <button class="theme-toggle" id="themeToggle" title="Toggle light/dark mode" aria-label="Toggle theme">
+        <!-- Moon icon (shown in dark mode) -->
+        <svg class="icon-moon" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/></svg>
+        <!-- Sun icon (shown in light mode) -->
+        <svg class="icon-sun" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="5"/><line x1="12" y1="1" x2="12" y2="3"/><line x1="12" y1="21" x2="12" y2="23"/><line x1="4.22" y1="4.22" x2="5.64" y2="5.64"/><line x1="18.36" y1="18.36" x2="19.78" y2="19.78"/><line x1="1" y1="12" x2="3" y2="12"/><line x1="21" y1="12" x2="23" y2="12"/><line x1="4.22" y1="19.78" x2="5.64" y2="18.36"/><line x1="18.36" y1="5.64" x2="19.78" y2="4.22"/></svg>
+      </button>
+    </div>
   </div>
 
   <!-- Input Section -->
@@ -920,6 +1025,28 @@ document.addEventListener('keydown', e => {
 });
 
 $('output').addEventListener('input', updateCharCount);
+
+// ── Theme Toggle ──
+(function() {
+  const STORAGE_KEY = 'hdt-theme';
+  const html = document.documentElement;
+  const btn = $('themeToggle');
+
+  // Apply saved theme immediately (before paint)
+  const saved = localStorage.getItem(STORAGE_KEY);
+  if (saved === 'light') html.setAttribute('data-theme', 'light');
+
+  btn.addEventListener('click', () => {
+    const isLight = html.getAttribute('data-theme') === 'light';
+    if (isLight) {
+      html.removeAttribute('data-theme');
+      localStorage.setItem(STORAGE_KEY, 'dark');
+    } else {
+      html.setAttribute('data-theme', 'light');
+      localStorage.setItem(STORAGE_KEY, 'light');
+    }
+  });
+})();
 
 $('privateKey').addEventListener('dragover', e => e.preventDefault());
 $('privateKey').addEventListener('drop', e => {
